@@ -161,3 +161,257 @@ SELECT * FROM task_1;
 </details>
 
 ## Задание 2
+### Задание 2.1
+<details> <summary>1. Создаем таблицу `client_operations`, чтобы хранить информацию о финансовых операциях клиентов, включая ID клиента, дату операции и сумму операции.</summary>
+    
+```mysql
+DROP TABLE IF EXISTS client_operations;
+
+CREATE TABLE client_operations (
+    id_client INT,
+    operation_date DATE,
+    operation_amount DECIMAL(10, 2));
+```
+</details> 
+<details> <summary>2. Заполняем таблицу `client_operations` случайными данными, включая ID клиента, дату операции и сумму операции, для десяти клиентов с датами операций в течение года.</summary>
+    
+```mysql
+INSERT INTO client_operations (id_client, operation_date, operation_amount)
+SELECT 
+    FLOOR(RAND() * 100) + 1,
+    DATE_ADD('2020-01-01', INTERVAL FLOOR(RAND() * 365) DAY),  
+    ROUND(RAND() * 10000, 2) 
+FROM 
+    (SELECT 1 FROM dual UNION ALL SELECT 2 FROM dual UNION ALL SELECT 3 FROM dual UNION ALL SELECT 4 FROM dual UNION ALL 
+    SELECT 5 FROM dual UNION ALL SELECT 6 FROM dual UNION ALL SELECT 7 FROM dual UNION ALL SELECT 8 FROM dual UNION ALL 
+    SELECT 9 FROM dual UNION ALL SELECT 10 FROM dual) AS temp;
+```
+</details> <details> <summary>3. Выводим все данные из таблицы `client_operations`, отсортированные по ID клиента.</summary>
+    
+```mysql
+SELECT * FROM client_operations
+ORDER BY id_client;
+```
+</details> <details> <summary>4а. Получаем сумму операций для каждого клиента по месяцам за 2020 год, с выделением каждого месяца в отдельную колонку.</summary>
+    
+```mysql
+SELECT 
+    id_client AS "ID Клиента",
+    SUM(IF(MONTH(operation_date) = 1, operation_amount, 0)) AS "Сумма Операций в январе 2020",
+    SUM(IF(MONTH(operation_date) = 2, operation_amount, 0)) AS "Сумма Операций в феврале 2020",
+    SUM(IF(MONTH(operation_date) = 3, operation_amount, 0)) AS "Сумма Операций в марте 2020",
+    SUM(IF(MONTH(operation_date) = 4, operation_amount, 0)) AS "Сумма Операций в апреле 2020",
+    SUM(IF(MONTH(operation_date) = 5, operation_amount, 0)) AS "Сумма Операций в мае 2020",
+    SUM(IF(MONTH(operation_date) = 6, operation_amount, 0)) AS "Сумма Операций в июне 2020",
+    SUM(IF(MONTH(operation_date) = 7, operation_amount, 0)) AS "Сумма Операций в июле 2020",
+    SUM(IF(MONTH(operation_date) = 8, operation_amount, 0)) AS "Сумма Операций в августе 2020",
+    SUM(IF(MONTH(operation_date) = 9, operation_amount, 0)) AS "Сумма Операций в сентябре 2020",
+    SUM(IF(MONTH(operation_date) = 10, operation_amount, 0)) AS "Сумма Операций в октябре 2020",
+    SUM(IF(MONTH(operation_date) = 11, operation_amount, 0)) AS "Сумма Операций в ноябре 2020",
+    SUM(IF(MONTH(operation_date) = 12, operation_amount, 0)) AS "Сумма Операций в декабре 2020"
+FROM client_operations
+WHERE YEAR(operation_date) = 2020
+GROUP BY id_client
+ORDER BY id_client;
+```
+</details> <details> <summary>4b. Добавляем конкретные данные о крупных операциях для клиентов для дальнейшего анализа в 2020 году.</summary>
+    
+```mysql
+INSERT INTO client_operations (id_client, operation_date, operation_amount) VALUES
+(1, '2020-04-05', 150000),
+(1, '2020-04-10', 120000),
+(1, '2020-04-15', 130000),
+(1, '2020-05-01', 110000),
+(1, '2020-05-10', 140000),
+(1, '2020-06-05', 160000),
+(2, '2020-04-05', 180000),
+(2, '2020-04-10', 190000),
+(2, '2020-04-15', 200000),
+(2, '2020-05-01', 170000),
+(2, '2020-05-10', 150000),
+(2, '2020-06-05', 110000),
+(3, '2020-04-05', 120000),
+(3, '2020-04-15', 130000),
+(3, '2020-05-01', 110000),
+(3, '2020-05-10', 150000),
+(3, '2020-06-01', 160000),
+(3, '2020-06-15', 170000);
+</details>
+<details> <summary>Получаем ID клиентов с более чем пятью крупными операциями в период с апреля по июнь 2020 года, сумма каждой операции превышает 100000.</summary>
+    
+```mysql
+SELECT id_client
+FROM client_operations
+WHERE operation_date BETWEEN '2020-04-01' AND '2020-06-30'
+AND operation_amount > 100000
+GROUP BY id_client
+HAVING COUNT(*) > 5
+ORDER BY id_client;
+```
+</details>
+<details> <summary>4c. Рассчитываем среднедневной оборот операций для каждого клиента за 2020 год.</summary>
+    
+```mysql
+SELECT 
+    id_client,
+    SUM(operation_amount)/COUNT(DISTINCT operation_date) AS "Среднедневной оборот в теч. 2020 года"
+FROM client_operations
+WHERE YEAR(operation_date) = 2020
+GROUP BY id_client
+ORDER BY id_client;
+```
+</details>
+
+### Задание 2.2
+
+<details> <summary>1. Создаем таблицу `table` для хранения данных о звонках сотрудников (ID сотрудника, ID клиента, дата звонка) и заполняем её тестовыми данными.</summary>
+    
+```mysql
+DROP TABLE IF EXISTS `table`;
+
+CREATE TABLE `table` (
+    employee_id INT,
+    client_id INT,
+    call_date DATE);
+
+INSERT INTO `table` (employee_id, client_id, call_date)
+VALUES 
+    (1, 1001, '2023-01-10'),
+    (1, 1002, '2023-01-12'),
+    (1, 1001, '2023-01-12'),
+    (1, 1001, '2023-01-12'),
+    (1, 1003, '2023-01-15'),
+    (1, 1004, '2023-01-15'),
+    (1, 1005, '2023-02-18'),
+    (1, 1006, '2023-02-25'),
+    (1, 1007, '2023-02-25'),
+    (1, 1008, '2023-03-30'),
+    (1, 1009, '2023-03-30'),
+    (1, 1009, '2023-03-30'),
+    (1, 1007, '2023-03-31'),
+    (2, 1010, '2023-01-05'),
+    (2, 1011, '2023-01-05'),
+    (2, 1011, '2023-01-12'),
+    (2, 1012, '2023-02-15'),
+    (2, 1013, '2023-02-15'),
+    (2, 1014, '2023-02-20'),
+    (2, 1015, '2023-03-25'),
+    (2, 1016, '2023-03-28'),
+    (2, 1015, '2023-03-28'),
+    (3, 1017, '2023-01-09'),
+    (3, 1018, '2023-01-19'),
+    (3, 1017, '2023-01-19'),
+    (3, 1018, '2023-02-10'),
+    (3, 1019, '2023-02-15'),
+    (3, 1018, '2023-02-15'),
+    (3, 1020, '2023-03-20'),
+    (3, 1021, '2023-03-20'),
+    (3, 1022, '2023-03-22'),
+    (3, 1023, '2023-03-22'),
+    (3, 1025, '2023-03-22'),
+    (4, 1026, '2023-01-05'),
+    (4, 1026, '2023-01-20'),
+    (4, 1026, '2023-01-20'),
+    (4, 1027, '2023-02-03'),
+    (4, 1028, '2023-02-28'),
+    (4, 1027, '2023-02-28'),
+    (4, 1028, '2023-03-12'),
+    (5, 1029, '2023-01-10'),
+    (5, 1029, '2023-01-22'),
+    (5, 1028, '2023-01-22'),
+    (5, 1029, '2023-01-22'),
+    (5, 1030, '2023-02-14'),
+    (5, 1031, '2023-03-01'),
+    (5, 1032, '2023-03-01'),
+    (5, 1032, '2023-03-20');
+SELECT * FROM `table`;
+```
+</details> 
+<details> <summary>2. Создаем таблицу `monthly_summary`, которая суммирует общее количество звонков и уникальных клиентов для каждого сотрудника по месяцам.</summary>
+    
+```mysql
+DROP TABLE IF EXISTS monthly_summary;
+
+CREATE TABLE monthly_summary AS
+SELECT employee_id,
+    DATE_FORMAT(call_date, '%Y-%m') AS report_month,
+    COUNT(*) AS total_calls,
+    COUNT(DISTINCT client_id) AS unique_clients
+FROM `table`
+GROUP BY employee_id, report_month;
+SELECT * FROM monthly_summary;
+```
+</details> 
+<details> <summary>3. Создаем таблицу `min_day` для нахождения дня с минимальным количеством звонков для каждого сотрудника в месяце.</summary>
+    
+```mysql
+DROP TABLE IF EXISTS min_day;
+
+CREATE TABLE min_day AS
+SELECT employee_id,
+       DATE_FORMAT(call_date, '%Y-%m') AS report_month,
+       DATE(call_date) AS min_call_date
+FROM `table` t1
+WHERE DATE(call_date) = (
+    SELECT DATE(call_date)
+    FROM `table` t2
+    WHERE t2.employee_id = t1.employee_id 
+      AND DATE_FORMAT(t2.call_date, '%Y-%m') = DATE_FORMAT(t1.call_date, '%Y-%m')
+    GROUP BY DATE(call_date)
+    ORDER BY COUNT(*) ASC, DATE(call_date) ASC
+    LIMIT 1)
+GROUP BY employee_id, report_month, min_call_date;
+SELECT * FROM min_day;
+```
+</details> 
+<details> <summary>4. Создаем таблицу `max_day` для нахождения дня с максимальным количеством звонков для каждого сотрудника в месяце.</summary>
+    
+```mysql
+CREATE TABLE max_day AS
+SELECT employee_id,
+       DATE_FORMAT(call_date, '%Y-%m') AS report_month,
+       DATE(call_date) AS max_call_date
+FROM `table` t1
+WHERE DATE(call_date) = (
+    SELECT DATE(call_date)
+    FROM `table` t2
+    WHERE t2.employee_id = t1.employee_id 
+      AND DATE_FORMAT(t2.call_date, '%Y-%m') = DATE_FORMAT(t1.call_date, '%Y-%m')
+    GROUP BY DATE(call_date)
+    ORDER BY COUNT(*) DESC, DATE(call_date) ASC
+    LIMIT 1)
+GROUP BY employee_id, report_month, max_call_date;
+SELECT * FROM max_day;
+```
+</details> 
+<details> <summary>5. Создаем таблицу с общим количеством звонков для каждого сотрудника.</summary>
+    
+```mysql
+
+CREATE TABLE total_history AS
+SELECT employee_id,
+    COUNT(*) AS total_calls_history
+FROM `table`
+GROUP BY employee_id;
+SELECT * FROM total_history;
+```
+</details> 
+<details> <summary>6. Создаем результирующую таблицу.</summary>
+    
+```mysql
+
+SELECT 
+    ms.employee_id AS 'ID сотрудника',
+    ms.report_month AS 'Отчетный месяц',
+    ms.total_calls AS 'Кол-во совершенных звонков за отчетный месяц',
+    ms.unique_clients AS 'Кол-во уникальных клиентов за отчетный месяц',
+    md.min_call_date AS 'День с минимальным кол-вом звонков',
+    mx.max_call_date AS 'День с максимальным кол-вом звонков',
+    th.total_calls_history AS 'Кол-во звонков за всю историю работы'
+FROM monthly_summary ms
+LEFT JOIN min_day md ON ms.employee_id = md.employee_id AND ms.report_month = md.report_month
+LEFT JOIN max_day mx ON ms.employee_id = mx.employee_id AND ms.report_month = mx.report_month
+LEFT JOIN total_history th ON ms.employee_id = th.employee_id
+ORDER BY ms.employee_id, ms.report_month;
+```
+</details> 
