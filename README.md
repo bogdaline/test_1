@@ -415,3 +415,63 @@ LEFT JOIN total_history th ON ms.employee_id = th.employee_id
 ORDER BY ms.employee_id, ms.report_month;
 ```
 </details> 
+
+### Задание 2.3
+</details>
+<details> 
+  <summary>1. Создаем таблицы A, B. Таблица A содержит идентификаторы клиентов и идентификаторы продуктов. Таблица B содержит только идентификаторы продуктов. </summary>
+  
+```mysql
+
+DROP TABLE IF EXISTS A;
+DROP TABLE IF EXISTS B;
+DROP TABLE IF EXISTS C;
+
+CREATE TABLE A(
+    client_id VARCHAR(20),
+    product_id VARCHAR(20));
+INSERT INTO A (client_id, product_id) VALUES
+    ('Клиент 1', 'Продукт 1'),
+    ('Клиент 1', 'Продукт 2'),
+    ('Клиент 2', 'Продукт 3'),
+    ('Клиент 3', 'Продукт 1');
+SELECT * FROM A;
+
+CREATE TABLE B(product_id VARCHAR(20));
+INSERT INTO B (product_id) VALUES
+    ('Продукт 1'),
+    ('Продукт 2'),
+    ('Продукт 3');
+SELECT * FROM B;
+```
+
+</details>
+
+<details> 
+  <summary>2. Создаем таблицу C, она содержит уникальные комбинации клиентов и продуктов с использованием CROSS JOIN. </summary>
+  
+```mysql
+
+CREATE TABLE C AS(SELECT 
+    clients.client_id AS client_id,
+    products.product_id AS product_id
+FROM (SELECT DISTINCT client_id FROM A) as clients
+CROSS JOIN B AS products
+ORDER BY clients.client_id, products.product_id);
+```
+</details>
+
+<details> 
+  <summary>3. Преобразуем таблицу C с добавлением флага использования продукта из таблицы A.</summary>
+  
+```mysql
+SELECT 
+    C.client_id AS "ID Клиента", 
+    C.product_id AS "ID продукта",
+    IF(A.product_id IS NOT NULL, 1, 0) AS "Флаг использования продукта"
+FROM C
+LEFT JOIN A
+ON C.client_id=A.client_id AND C.product_id=A.product_id
+ORDER BY C.client_id, C.product_id;
+```
+</details>
