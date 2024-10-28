@@ -30,7 +30,7 @@ SELECT * FROM C;
 SELECT 
     C.client_id AS "ID Клиента", 
     C.product_id AS "ID продукта",
-    IF(a.product_id IS NOT NULL, 1, 0) AS "Флаг использования продукта"
+    IF(A.product_id IS NOT NULL, 1, 0) AS "Флаг использования продукта"
 FROM C
 LEFT JOIN A
 ON C.client_id=A.client_id AND C.product_id=A.product_id
