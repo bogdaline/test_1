@@ -236,7 +236,9 @@ INSERT INTO client_operations (id_client, operation_date, operation_amount) VALU
 (3, '2020-05-10', 150000),
 (3, '2020-06-01', 160000),
 (3, '2020-06-15', 170000);
+```
 </details>
+
 <details> <summary>Получаем ID клиентов с более чем пятью крупными операциями в период с апреля по июнь 2020 года, сумма каждой операции превышает 100000.</summary>
     
 ```mysql
