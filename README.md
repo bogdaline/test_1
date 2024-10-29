@@ -475,3 +475,126 @@ ON C.client_id=A.client_id AND C.product_id=A.product_id
 ORDER BY C.client_id, C.product_id;
 ```
 </details>
+
+### Задание 2.4
+**Примечание**: Возможно, в задании есть **опечатка** в таблице B  в операции за 18 марта - в задании указано, что в эту дату было произведено пополнение счета на 5 000. Но в таком случае не совпадает остаток в таблице A на 31.03.2021. Предположим, что в записи ошибка (или есть незафиксированные операции в таблице B), исправим сумму 
+</details>
+<details> 
+  <summary>1. Создаем таблицы A, B по условиям задания. Таблица A содержит остатки на счете клиента. Таблица B содержит расходные операции. </summary>
+  
+  
+```mysql
+DROP TABLE IF EXISTS A;
+DROP TABLE IF EXISTS B;
+
+CREATE TABLE A (
+    RepDate DATE,
+    BalDate DECIMAL(15,2));
+INSERT INTO A (RepDate, BalDate) VALUES
+('2020-12-31', 100000),
+('2021-01-31', 100000),
+('2021-02-28', 120000),
+('2021-03-31', 105000);
+SELECT * FROM A;
+
+CREATE TABLE B (
+    OperDate DATE,
+    OperSum DECIMAL(15,2));
+INSERT INTO B (OperDate, OperSum) VALUES
+('2021-01-15', -20000),
+('2021-01-25', 20000),
+('2021-02-11', 30000),
+('2021-02-20', -10000),
+('2021-03-18', -15000); -- опечатка....
+SELECT * FROM B;
+```
+</details>
+
+<details> 
+  <summary>2. Создаем календарь. В MySQL удалось создать календарь без использования таблицы DUAL. Корректно использовать данную таблицу можно было бы в oracle, например, так:
+    
+```mysql 
+SELECT (to_date('01-05-2015','DD-MM-YYYY') - level + 1) AS day
+FROM dual
+CONNECT BY LEVEL <= (to_date('01-05-2015','DD-MM-YYYY') - to_date('01-04-2015','DD-MM-YYYY') + 1); </summary>
+  ```
+
+</summary>
+
+```mysql
+DROP TABLE IF EXISTS Calendar;
+CREATE TABLE Calendar (
+    Date DATE);
+INSERT INTO Calendar (Date)
+SELECT DATE_ADD('2021-01-01', INTERVAL n DAY) AS Date
+FROM (
+    SELECT a.n + b.n * 10 AS n
+    FROM (SELECT 0 AS n UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 
+          UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9) a,
+         (SELECT 0 AS n UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 
+          UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9) b
+) AS numbers
+WHERE n < 90;
+SELECT * FROM Calendar ORDER BY Date;
+```
+</details>
+
+</details>
+<details> 
+  <summary>3. Пробуем объединить таблицы календаря и операций для понимания числа операций на заданном временном промежутке. </summary>
+  
+```mysql
+DROP TABLE IF EXISTS Calendar_B;
+CREATE TABLE Calendar_B AS
+SELECT 
+    c.Date,
+    b.OperDate,
+    IFNULL(b.OperSum, 0) AS OperSum
+FROM Calendar c
+LEFT JOIN B b ON c.Date = b.OperDate
+ORDER BY c.Date;
+SELECT * FROM Calendar_B ORDER BY Date;
+```
+</details>
+
+<details> 
+  <summary>4. Извлекаем остаток на конец декабря 2020 года из таблицы A и сумму всех операций до начала 2021 года из таблицы B. Получаем начальный баланс для нашей будущей таблицы.</summary>
+    
+```mysql
+SELECT BalDate 
+FROM A 
+WHERE RepDate = (SELECT MAX(RepDate) FROM A WHERE RepDate <= '2021-01-01');
+
+SELECT SUM(OperSum) FROM B WHERE OperDate < '2021-01-01';
+
+DROP TABLE IF EXISTS InitialBalance;
+CREATE TABLE InitialBalance AS SELECT 
+    (SELECT BalDate 
+     FROM A 
+     WHERE RepDate = (SELECT MAX(RepDate) FROM A WHERE RepDate <= '2021-01-01'))
+    +
+    IFNULL((SELECT SUM(OperSum) FROM B WHERE OperDate < '2021-01-01'), 0) AS Balance;
+SELECT * FROM InitialBalance;
+```
+</details>
+<details> 
+  <summary>5. Создаем результирующую таблицу. Для подсчета ежеденевного остатка исользуем оконную функцию. В конце удаляем вспомогательный столбец.</summary>
+  
+```mysql
+DROP TABLE IF EXISTS DailyBalances;
+CREATE TABLE DailyBalances AS
+SELECT 
+    c.Date,
+    IFNULL(b.OperSum, 0) AS OperSum,
+    (SELECT * FROM InitialBalance) + SUM(IFNULL(b.OperSum, 0)) OVER (ORDER BY c.Date) AS DailyBalance
+FROM Calendar c
+LEFT JOIN B b ON c.Date = b.OperDate
+ORDER BY c.Date;
+SELECT * FROM DailyBalances ORDER BY Date;
+
+ALTER TABLE DailyBalances
+DROP COLUMN OperSum;
+
+SELECT * FROM DailyBalances ORDER BY Date;
+```
+</details>
